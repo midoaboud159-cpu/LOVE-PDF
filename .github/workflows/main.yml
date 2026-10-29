@@ -1,0 +1,70 @@
+name: Build Windows & Android Releases
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً من واجهة GitHub
+
+jobs:
+  # 1. بناء نسخة الأندرويد (APK)
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+
+      - name: Generate Platform Files & Build APK
+        working-directory: ./frontend-flutter
+        run: |
+          flutter create --platforms=android .
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DocuMaster-Pro-Android-APK
+          path: frontend-flutter/build/app/outputs/flutter-apk/app-release.apk
+
+  # 2. بناء نسخة الويندوز (Windows PC EXE)
+  build-windows:
+    name: Build Windows Executable
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+
+      - name: Enable Windows Desktop & Build EXE
+        working-directory: ./frontend-flutter
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows .
+          flutter pub get
+          flutter build windows --release
+
+      - name: Upload Windows Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DocuMaster-Pro-Windows-PC
+          path: frontend-flutter/build/windows/x64/runner/Release/
